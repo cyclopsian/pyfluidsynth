@@ -27,7 +27,6 @@ Added sequencer support -- Christian Romberg <distjubo@gmail.com>
 
 from ctypes import *
 from ctypes.util import find_library
-from future.utils import iteritems
 
 # A short circuited or expression to find the FluidSynth library
 # (mostly needed for Windows distributions of libfluidsynth supplied with QSynth)
@@ -165,36 +164,27 @@ fluid_synth_write_s16 = cfunc('fluid_synth_write_s16', c_void_p,
                               ('roff', c_int, 1),
                               ('rincr', c_int, 1))
 
-class fluid_synth_channel_info_t(Structure):
-    _fields_ = [
-        ('assigned', c_int),
-        ('sfont_id', c_int),
-        ('bank', c_int),
-        ('program', c_int),
-        ('name', c_char*32),
-        ('reserved', c_char*32)]
+fluid_synth_get_program = cfunc('fluid_synth_get_program', c_int,
+                               ('synth', c_void_p, 1),
+                               ('chan', c_int, 1),
+                               ('sfont_id', POINTER(c_int), 1),
+                               ('bank_num', POINTER(c_int), 1),
+                               ('preset_num', POINTER(c_int), 1))
 
-fluid_synth_get_channel_info = cfunc('fluid_synth_get_channel_info', c_int,
-                                  ('synth', c_void_p, 1),
-                                  ('chan', c_int, 1),
-                                  ('info', POINTER(fluid_synth_channel_info_t), 1))
-
-fluid_synth_set_reverb_full = cfunc('fluid_synth_set_reverb_full', c_int,
-                                    ('synth', c_void_p, 1),
-                                    ('set', c_int, 1),
-                                    ('roomsize', c_double, 1),
-                                    ('damping', c_double, 1),
-                                    ('width', c_double, 1),
-                                    ('level', c_double, 1))
+fluid_synth_set_reverb = cfunc('fluid_synth_set_reverb', c_int,
+                              ('synth', c_void_p, 1),
+                              ('roomsize', c_double, 1),
+                              ('damping', c_double, 1),
+                              ('width', c_double, 1),
+                              ('level', c_double, 1))
                                     
-fluid_synth_set_chorus_full = cfunc('fluid_synth_set_chorus_full', c_int,
-                                    ('synth', c_void_p, 1),
-                                    ('set', c_int, 1),
-                                    ('nr', c_int, 1),
-                                    ('level', c_double, 1),
-                                    ('speed', c_double, 1),
-                                    ('depth_ms', c_double, 1),
-                                    ('type', c_int, 1))
+fluid_synth_set_chorus = cfunc('fluid_synth_set_chorus', c_int,
+                              ('synth', c_void_p, 1),
+                              ('nr', c_int, 1),
+                              ('level', c_double, 1),
+                              ('speed', c_double, 1),
+                              ('depth_ms', c_double, 1),
+                              ('type', c_int, 1))
 
 fluid_synth_get_reverb_roomsize = cfunc('fluid_synth_get_reverb_roomsize', c_double,
                                     ('synth', c_void_p, 1))
@@ -215,18 +205,14 @@ fluid_synth_get_chorus_nr = cfunc('fluid_synth_get_chorus_nr', c_int,
 fluid_synth_get_chorus_level = cfunc('fluid_synth_get_chorus_level', c_double,
                                     ('synth', c_void_p, 1))
 
-fluid_synth_get_chorus_speed_Hz = cfunc('fluid_synth_get_chorus_speed_Hz', c_double,
+fluid_synth_get_chorus_speed = cfunc('fluid_synth_get_chorus_speed', c_double,
                                     ('synth', c_void_p, 1))
 
-fluid_synth_get_chorus_depth_ms = cfunc('fluid_synth_get_chorus_depth_ms', c_double,
+fluid_synth_get_chorus_depth = cfunc('fluid_synth_get_chorus_depth', c_double,
                                     ('synth', c_void_p, 1))
 
 fluid_synth_get_chorus_type = cfunc('fluid_synth_get_chorus_type', c_int,
                                     ('synth', c_void_p, 1))
-
-fluid_synth_set_midi_router = cfunc('fluid_synth_set_midi_router', None,
-                               ('synth', c_void_p, 1),
-                               ('router', c_void_p, 1))
 
 fluid_synth_handle_midi_event = cfunc('fluid_synth_handle_midi_event', POINTER(c_int),
                                ('data', c_void_p, 1),
@@ -323,17 +309,6 @@ new_fluid_midi_driver = cfunc('new_fluid_midi_driver', c_void_p,
 
 
 # fluid midi router rule
-class fluid_midi_router_t(Structure):
-    _fields_ = [
-        ('synth', c_void_p),
-        ('rules_mutex', c_void_p),
-        ('rules', c_void_p*6),
-        ('free_rules', c_void_p),
-        ('event_handler', c_void_p),
-        ('event_handler_data', c_void_p),
-        ('nr_midi_channels', c_int),
-        ('cmd_rule', c_void_p),
-        ('cmd_rule_type', POINTER(c_int))]
 
 delete_fluid_midi_router_rule = cfunc('delete_fluid_midi_router_rule', c_int,
                                     ('rule', c_void_p, 1))
@@ -362,7 +337,7 @@ fluid_midi_router_rule_set_param2 = cfunc('fluid_midi_router_rule_set_param2', N
                                     ('add', c_int, 1))
 
 # fluid midi router
-new_fluid_midi_router = cfunc('new_fluid_midi_router', POINTER(fluid_midi_router_t),
+new_fluid_midi_router = cfunc('new_fluid_midi_router', c_void_p,
                                ('settings', c_void_p, 1),
                                ('handler', CFUNCTYPE(POINTER(c_int), c_void_p, c_void_p), 1),
                                ('event_handler_data', c_void_p, 1))
@@ -372,15 +347,42 @@ fluid_midi_router_handle_midi_event = cfunc('fluid_midi_router_handle_midi_event
                                ('event', c_void_p, 1))
 
 fluid_midi_router_clear_rules = cfunc('fluid_midi_router_clear_rules', c_int,
-                                    ('router', POINTER(fluid_midi_router_t), 1))
+                                    ('router', c_void_p, 1))
 
 fluid_midi_router_set_default_rules = cfunc('fluid_midi_router_set_default_rules', c_int,
-                                    ('router', POINTER(fluid_midi_router_t), 1))
+                                    ('router', c_void_p, 1))
 
 fluid_midi_router_add_rule = cfunc('fluid_midi_router_add_rule', c_int,
-                                    ('router', POINTER(fluid_midi_router_t), 1),
+                                    ('router', c_void_p, 1),
                                     ('rule', c_void_p, 1),
                                     ('type', c_int, 1))
+# fluid player
+new_fluid_player = cfunc('new_fluid_player', c_void_p,
+                        ('synth', c_void_p, 1))
+
+fluid_player_add = cfunc('fluid_player_add', c_int,
+                        ('player', c_void_p, 1),
+                        ('midifile', c_char_p, 1))
+
+fluid_player_add_mem = cfunc('fluid_player_add_mem', c_int,
+                            ('player', c_void_p, 1),
+                            ('buffer', c_void_p, 1),
+                            ('len', c_size_t, 1))
+
+fluid_player_play = cfunc('fluid_player_play', c_int,
+                         ('player', c_void_p, 1))
+
+fluid_player_stop = cfunc('fluid_player_stop', c_int,
+                         ('player', c_void_p, 1))
+
+fluid_player_join = cfunc('fluid_player_join', c_int,
+                         ('player', c_void_p, 1))
+
+fluid_player_get_status = cfunc('fluid_player_get_status', c_int,
+                         ('player', c_void_p, 1))
+
+delete_fluid_player = cfunc('delete_fluid_player', None,
+                           ('player', c_void_p, 1))
         
 def fluid_synth_write_s16_stereo(synth, len):
     """Return generated samples in stereo 16-bit format
@@ -408,12 +410,12 @@ class Synth:
         added capability for passing arbitrary fluid settings using args
         """
         st = new_fluid_settings()
+        self.settings = st
         fluid_settings_setnum(st, b'synth.gain', gain)
         fluid_settings_setnum(st, b'synth.sample-rate', samplerate)
         fluid_settings_setint(st, b'synth.midi-channels', channels)
-        for opt,val in iteritems(kwargs):
+        for opt,val in kwargs.items():
             self.setting(opt, val)
-        self.settings = st
         self.synth = new_fluid_synth(st)
         self.audio_driver = None
         self.midi_driver = None
@@ -421,12 +423,14 @@ class Synth:
     def setting(self, opt, val):
         """change an arbitrary synth setting, type-smart"""
         opt = opt.encode()
-        if isinstance(val, basestring):
-            fluid_settings_setstr(self.settings, opt, val)
+        if isinstance(val, str):
+            fluid_settings_setstr(self.settings, opt, val.encode())
         elif isinstance(val, int):
             fluid_settings_setint(self.settings, opt, val)
         elif isinstance(val, float):
             fluid_settings_setnum(self.settings, opt, val)
+        else:
+            raise TypeError()
     def start(self, driver=None, device=None, midi_driver=None):
         """Start audio output driver in separate background thread
 
@@ -437,8 +441,9 @@ class Synth:
         Optional keyword argument:
         driver : which audio driver to use for output
         Possible choices:
-        'alsa', 'oss', 'jack', 'portaudio'
-        'sndmgr', 'coreaudio', 'Direct Sound'
+        'jack', 'alsa', 'oss', 'pulseaudio', 'coreaudio',
+        'dsound', 'poraudio', 'sndman', 'dart', 'opensles',
+        'oboe', 'waveout', 'file', 'sdl2'
         device: the device to use for audio output
 
         Not all drivers will be available for every platform, it
@@ -447,7 +452,7 @@ class Synth:
 
         """
         if driver is not None:
-            assert (driver in ['alsa', 'oss', 'jack', 'portaudio', 'sndmgr', 'coreaudio', 'Direct Sound', 'pulseaudio']) 
+            assert (driver in ['jack', 'alsa', 'oss', 'pulseaudio', 'coreaudio', 'dsound', 'poraudio', 'sndman', 'dart', 'opensles', 'oboe', 'waveout', 'file', 'sdl2'])
             fluid_settings_setstr(self.settings, b'audio.driver', driver.encode())
             if device is not None:
                 fluid_settings_setstr(self.settings, str('audio.%s.device' % (driver)).encode(), device.encode())
@@ -456,13 +461,15 @@ class Synth:
             assert (midi_driver in ['alsa_seq', 'alsa_raw', 'oss', 'winmidi', 'midishare', 'coremidi'])
             fluid_settings_setstr(self.settings, b'midi.driver', midi_driver.encode())
             self.router = new_fluid_midi_router(self.settings, fluid_synth_handle_midi_event, self.synth)
-            fluid_synth_set_midi_router(self.synth, self.router)
             self.midi_driver = new_fluid_midi_driver(self.settings, fluid_midi_router_handle_midi_event, self.router)
     def delete(self):
         if self.audio_driver is not None:
             delete_fluid_audio_driver(self.audio_driver)
+            self.audio_driver = None
         delete_fluid_synth(self.synth)
+        self.synth = None
         delete_fluid_settings(self.settings)
+        self.settings = None
     def sfload(self, filename, update_midi_preset=0):
         """Load SoundFont and return its ID"""
         return fluid_synth_sfload(self.synth, filename.encode(), update_midi_preset)
@@ -472,11 +479,13 @@ class Synth:
     def program_select(self, chan, sfid, bank, preset):
         """Select a program"""
         return fluid_synth_program_select(self.synth, chan, sfid, bank, preset)
-    def channel_info(self, chan):
-        """get soundfont, bank, prog, preset name of channel"""
-        info=fluid_synth_channel_info_t()
-        fluid_synth_get_channel_info(self.synth, chan, byref(info))
-        return (info.sfont_id, info.bank, info.program, info.name)
+    def program(self, chan):
+        """get soundfont, bank, prog of channel"""
+        sfont_id=c_int()
+        bank_num=c_int()
+        preset_num=c_int()
+        fluid_synth_get_program(self.synth, chan, byref(sfont_id), byref(bank_num), byref(preset_num))
+        return (sfont_id.value, bank_num.value, preset_num.value)
     def router_clear(self):
         if self.router is not None:
             fluid_midi_router_clear_rules(self.router)
@@ -533,7 +542,7 @@ class Synth:
             set+=0b0100
         if level>=0:
             set+=0b1000
-        return fluid_synth_set_reverb_full(self.synth, set, roomsize, damping, width, level)
+        return fluid_synth_set_reverb(self.synth, roomsize, damping, width, level)
     def set_chorus(self, nr=-1, level=-1.0, speed=-1.0, depth=-1.0, type=-1):
         """                                  
         nr Chorus voice count (0-99, CPU time consumption proportional to this value)
@@ -553,7 +562,7 @@ class Synth:
             set+=0b01000
         if type>=0:
             set+=0b10000
-        return fluid_synth_set_chorus_full(self.synth, set, nr, level, speed, depth, type)
+        return fluid_synth_set_chorus(self.synth, nr, level, speed, depth, type)
     def get_reverb_roomsize(self):
         return fluid_synth_get_reverb_roomsize(self.synth)
     def get_reverb_damp(self):
@@ -567,9 +576,9 @@ class Synth:
     def get_chorus_level(self):
         return fluid_synth_get_reverb_level(self.synth)
     def get_chorus_speed(self):
-        return fluid_synth_get_chorus_speed_Hz(self.synth)
+        return fluid_synth_get_chorus_speed(self.synth)
     def get_chorus_depth(self):
-        return fluid_synth_get_chorus_depth_ms(self.synth)
+        return fluid_synth_get_chorus_depth(self.synth)
     def get_chorus_type(self):
         return fluid_synth_get_chorus_type(self.synth)
     def noteon(self, chan, key, vel):
@@ -641,6 +650,10 @@ class Synth:
 
         """
         return fluid_synth_write_s16_stereo(self.synth, len)
+    def __enter__(self):
+        pass
+    def __exit__(self):
+        self.delete()
 
 class Sequencer:
     def __init__(self, time_scale=1000, use_system_timer=True):
@@ -714,6 +727,42 @@ class Sequencer:
 
     def delete(self):
         delete_fluid_sequencer(self.sequencer)
+        self.sequencer = None
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self):
+        self.delete()
+
+class Player:
+    READY = 0
+    PLAYING = 1
+    DONE = 2
+    def __init__(self, synth):
+        self.player = new_fluid_player(synth.synth)
+    def add(self, src):
+        if isinstance(src, str):
+            fluid_player_add(self.player, src.encode())
+        elif isinstance(src, bytes):
+            fluid_player_add_mem(self.player, cast(src, c_void_p), len(src))
+        else:
+            raise TypeError()
+    def play(self):
+        fluid_player_play(self.player)
+    def stop(self):
+        fluid_player_stop(self.player)
+    def join(self):
+        fluid_player_join(self.player)
+    def status(self):
+        return fluid_player_get_status(self.player)
+    def delete(self):
+        delete_fluid_player(self.player)
+        self.player = None
+    def __enter__(self):
+        pass
+    def __exit__(self):
+        self.delete()
 
 def raw_audio_string(data):
     """Return a string of bytes to send to soundcard
