@@ -205,10 +205,10 @@ fluid_synth_get_chorus_nr = cfunc('fluid_synth_get_chorus_nr', c_int,
 fluid_synth_get_chorus_level = cfunc('fluid_synth_get_chorus_level', c_double,
                                     ('synth', c_void_p, 1))
 
-fluid_synth_get_chorus_speed = cfunc('fluid_synth_get_chorus_speed', c_double,
+fluid_synth_get_chorus_speed = cfunc('fluid_synth_get_chorus_speed_Hz', c_double,
                                     ('synth', c_void_p, 1))
 
-fluid_synth_get_chorus_depth = cfunc('fluid_synth_get_chorus_depth', c_double,
+fluid_synth_get_chorus_depth = cfunc('fluid_synth_get_chorus_depth_ms', c_double,
                                     ('synth', c_void_p, 1))
 
 fluid_synth_get_chorus_type = cfunc('fluid_synth_get_chorus_type', c_int,
@@ -378,8 +378,26 @@ fluid_player_stop = cfunc('fluid_player_stop', c_int,
 fluid_player_join = cfunc('fluid_player_join', c_int,
                          ('player', c_void_p, 1))
 
+fluid_player_set_loop = cfunc('fluid_player_set_loop', c_int,
+                             ('player', c_void_p, 1),
+                             ('loop', c_int, 1))
+
+fluid_player_set_midi_tempo = cfunc('fluid_player_set_midi_tempo', c_int,
+                                    ('player', c_void_p, 1),
+                                    ('tempo', c_int, 1))
+
+fluid_player_set_bpm = cfunc('fluid_player_set_bpm', c_int,
+                            ('player', c_void_p, 1),
+                            ('bpm', c_int, 1))
+
 fluid_player_get_status = cfunc('fluid_player_get_status', c_int,
-                         ('player', c_void_p, 1))
+                               ('player', c_void_p, 1))
+
+fluid_player_get_bpm = cfunc('fluid_player_get_bpm', c_int,
+                            ('player', c_void_p, 1))
+
+fluid_player_get_midi_tempo = cfunc('fluid_player_get_midi_tempo', c_int,
+                                   ('player', c_void_p, 1))
 
 delete_fluid_player = cfunc('delete_fluid_player', None,
                            ('player', c_void_p, 1))
@@ -754,8 +772,20 @@ class Player:
         fluid_player_stop(self.player)
     def join(self):
         fluid_player_join(self.player)
+    def join(self):
+        fluid_player_join(self.player)
+    def set_loop(self, loop):
+        fluid_player_set_loop(self.player, loop)
+    def set_midi_tempo(self, tempo):
+        fluid_player_set_midi_tempo(self.player, tempo)
+    def set_bpm(self, bpm):
+        fluid_player_set_bpm(self.player, bpm)
     def status(self):
         return fluid_player_get_status(self.player)
+    def bpm(self):
+        return fluid_player_get_bpm(self.player)
+    def midi_tempo(self):
+        return fluid_player_get_midi_tempo(self.player)
     def delete(self):
         delete_fluid_player(self.player)
         self.player = None
